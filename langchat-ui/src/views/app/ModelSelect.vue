@@ -16,18 +16,19 @@
 
 <script lang="ts" setup>
   import { onMounted, ref, toRaw } from 'vue';
-  import { getChatModels } from '@/api/aigc/model';
-  import { LLMProviders } from '@/views/aigc/model/data';
+  import { list as getModels } from '@/api/aigc/model';
+  import { LLMProviders } from '@/views/aigc/model/components/chat/data';
+  import { ModelTypeEnum } from '@/api/models';
 
   const props = defineProps<{
-    id: string;
+    id: any;
   }>();
   const emit = defineEmits(['update']);
   const options = ref([]);
   const modelId = ref('');
 
   onMounted(async () => {
-    const providers = await getChatModels();
+    const providers = await getModels({ type: ModelTypeEnum.CHAT });
     const data: any = [];
     LLMProviders.forEach((i) => {
       const children = providers.filter((m) => m.provider == i.model);
@@ -48,7 +49,7 @@
   function onUpdate(val: any, opt) {
     const obj = toRaw(opt);
     emit('update', {
-      modelId: obj.id,
+      id: obj.id,
       modelName: obj.model,
       modelProvider: obj.provider,
     });

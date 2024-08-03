@@ -15,18 +15,18 @@
   -->
 
 <script lang="ts" setup>
-  import { h, onMounted, ref } from 'vue';
+  import { onMounted, ref } from 'vue';
   import Edit from './edit.vue';
   import { del as delApi, list as getApiList } from '@/api/app/appApi';
   import { del as delWeb, list as getWebList } from '@/api/app/appWeb';
   import SvgIcon from '@/components/SvgIcon/index.vue';
-  import router from '@/router';
   import { useDialog, useMessage } from 'naive-ui';
+  import { copyToClip } from '@/utils/copy';
+  import { ChannelEnum, getKey, onInfo, renderIcon, renderTitle } from '@/views/app/columns';
 
   const editRef = ref();
   const dialog = useDialog();
   const ms = useMessage();
-  const loading = ref(true);
   const groups = ref<any[]>([]);
 
   onMounted(async () => {
@@ -34,62 +34,14 @@
   });
 
   async function fetchData() {
-    loading.value = true;
-    try {
-      const apiArr = await getApiList({});
-      const webArr = await getWebList({});
-      groups.value = [
-        { key: 'CHANNEL_API', value: apiArr as any[] },
-        { key: 'CHANNEL_WEB', value: webArr as any[] },
-        { key: 'CHANNEL_WEIXIN', value: [] as any[] },
-      ];
-    } finally {
-      loading.value = false;
-    }
-  }
-
-  async function onInfo(item: any) {
-    console.log('点击了', item);
-    if (item.channel === 'CHANNEL_API') {
-      await router.push('/aigc/app/api/' + item.id);
-    }
-    if (item.channel === 'CHANNEL_WEB') {
-      await router.push('/aigc/app/web/' + item.id);
-    }
-    if (item.channel === 'CHANNEL_WEIXIN') {
-      await router.push('/aigc/app/weixin/' + item.id);
-    }
-  }
-
-  function renderTitle(channel: string) {
-    if (channel === 'CHANNEL_API') return 'HTTP API渠道';
-    if (channel === 'CHANNEL_WEB') return 'WEB渠道';
-    if (channel === 'CHANNEL_WEIXIN') return '微信渠道';
-  }
-
-  function renderIcon(channel: string) {
-    return {
-      render() {
-        if (channel === 'CHANNEL_API') {
-          return h(SvgIcon, {
-            class: 'text-4xl text-blue-500',
-            icon: 'hugeicons:api',
-          });
-        }
-        if (channel === 'CHANNEL_WEB') {
-          return h(SvgIcon, {
-            class: 'text-4xl text-blue-500',
-            icon: 'mdi:web-sync',
-          });
-        }
-        if (channel === 'CHANNEL_WEIXIN') {
-          return h(SvgIcon, {
-            class: 'text-4xl text-green-400',
-            icon: 'uiw:weixin',
-          });
-        }
-      },
-    };
+    const apiArr = await getApiList({});
+    const webArr = await getWebList({});
+    groups.value = [
+      { key: ChannelEnum.CHANNEL_API, value: apiArr as any[] },
+      { key: ChannelEnum.CHANNEL_WEB, value: webArr as any[] },
+      { key: ChannelEnum.CHANNEL_WEIXIN, value: [] as any[] },
+      { key: ChannelEnum.CHANNEL_DING, value: [] as any[] },
+    ];
   }
 
   function onDelete(channel: string, id: string) {
@@ -112,6 +64,11 @@
       },
     });
   }
+
+  async function onCopy(key: string) {
+    await copyToClip(key);
+    ms.success('Api Key复制成功');
+  }
 </script>
 
 <template>
@@ -122,7 +79,7 @@
       </n-card>
     </div>
 
-    <n-spin :show="loading" class="mt-4 w-full mb-10 px-6">
+    <div class="mt-2 w-full mb-10 px-6 !h-auto">
       <div class="flex items-center gap-2 justify-start">
         <n-button dashed type="primary" @click="editRef.show()"> 新增应用 </n-button>
         <n-button tertiary type="primary" @click="fetchData">
@@ -136,6 +93,7 @@
             <component :is="renderIcon(items.key)" />
           </template>
         </n-alert>
+        <n-empty v-if="items.value.length === 0" class="mt-6" description="暂时没有配置" />
         <div class="grid gap-2 sm:grid-cols-3 lg:grid-cols-5">
           <n-card
             v-for="item in items.value"
@@ -172,16 +130,18 @@
 
               <div class="flex items-center justify-between w-full mt-3 gap-x-2">
                 <input
-                  :value="item.link"
+                  v-if="items.key === 'CHANNEL_API'"
+                  :value="getKey(item.apiKey)"
                   class="flex-1 block h-8 px-4 text-sm text-gray-700 bg-white border border-gray-200 rounded-md focus:border-blue-400 focus:ring-blue-300 focus:ring-opacity-40 focus:outline-none focus:ring"
                   type="text"
                 />
-
                 <button
                   class="rounded-md hidden sm:block p-1.5 text-gray-700 bg-white border border-gray-200 focus:border-blue-400 focus:ring-blue-300 focus:ring-opacity-40 focus:outline-none focus:ring transition-colors duration-300 hover:text-blue-500 dark:hover:text-blue-500"
+                  @click="onCopy(item.apiKey)"
                 >
                   <SvgIcon class="text-lg" icon="uil:copy" />
                 </button>
+
                 <button
                   class="rounded-md hidden sm:block p-1.5 text-gray-700 bg-blue-100 focus:ring-opacity-40 focus:outline-none focus:ring transition-colors duration-300 hover:text-blue-500 dark:hover:text-blue-500"
                   @click="onInfo(item)"
@@ -193,7 +153,7 @@
           </n-card>
         </div>
       </div>
-    </n-spin>
+    </div>
 
     <Edit ref="editRef" @reload="fetchData" />
   </div>

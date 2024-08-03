@@ -1,3 +1,19 @@
+<!--
+  - Copyright (c) 2024 LangChat. TyCoding All Rights Reserved.
+  -
+  - Licensed under the GNU Affero General Public License, Version 3 (the "License");
+  - you may not use this file except in compliance with the License.
+  - You may obtain a copy of the License at
+  -
+  -     https://www.gnu.org/licenses/agpl-3.0.html
+  -
+  - Unless required by applicable law or agreed to in writing, software
+  - distributed under the License is distributed on an "AS IS" BASIS,
+  - WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  - See the License for the specific language governing permissions and
+  - limitations under the License.
+  -->
+
 <script lang="ts" setup>
   import { onMounted, ref, toRaw } from 'vue';
   import SvgIcon from '@/components/SvgIcon/index.vue';
@@ -18,6 +34,8 @@
   const dialog = useDialog();
   const router = useRouter();
   const apiKey = ref('');
+  const isExpired = ref(false);
+  const isLimit = ref(false);
   const modelOptions = ref([]);
 
   onMounted(async () => {
@@ -27,6 +45,9 @@
       data.apiKey = await generateKey();
     }
     apiKey.value = data.apiKey;
+    if (data.expired == null) {
+      isExpired.value = true;
+    }
     data.apiKey =
       data.apiKey.slice(0, 13) +
       data.apiKey.slice(13, -4).replace(/./g, '*') +
@@ -41,7 +62,6 @@
     formRef.value?.validate(async (errors) => {
       if (!errors) {
         const data = { ...toRaw(form.value) };
-        data.apiKey = apiKey.value;
         if (isNullOrWhitespace(data.id)) {
           await add(data);
           emit('reload');
@@ -105,6 +125,39 @@
   function onSelectKnowledge(val) {
     form.value.knowledgeId = val.id;
   }
+  function onSelectModel(val) {
+    form.value.modelId = val.id;
+  }
+  function onSelectPrompt(val) {
+    form.value.promptId = val.id;
+  }
+
+  function onCheckExpired(val: boolean) {
+    if (val) {
+      form.value.expired = null;
+    }
+  }
+  function onUpdateExpired(val) {
+    if (val == null) {
+      isExpired.value = true;
+      form.value.expired = null;
+    } else {
+      isExpired.value = false;
+    }
+  }
+  function onCheckLimit(val: boolean) {
+    if (val) {
+      form.value.reqLimit = null;
+    }
+  }
+  function onUpdateLimit(val) {
+    if (val == null) {
+      isLimit.value = true;
+      form.value.reqLimit = null;
+    } else {
+      isLimit.value = false;
+    }
+  }
 </script>
 
 <template>
@@ -126,11 +179,7 @@
       </n-form-item>
 
       <n-form-item label="关联模型" path="modelId">
-        <ModelSelect
-          v-if="form.modelId !== undefined"
-          :id="form.modelId"
-          @update="(modelId:string) => form.value.modelId = modelId"
-        />
+        <ModelSelect v-if="form.modelId !== undefined" :id="form.modelId" @update="onSelectModel" />
       </n-form-item>
       <n-form-item label="关联知识库" path="knowledgeId">
         <KnowledgeSelect
@@ -143,19 +192,36 @@
         <PromptSelect
           v-if="form.promptId !== undefined"
           :id="form.promptId"
-          @update="(id:string) => form.value.promptId = id"
+          @update="onSelectPrompt"
         />
       </n-form-item>
 
-      <n-form-item label="请求限额（天）" path="limit">
-        <n-slider v-model:value="form.key" :step="10" />
+      <n-form-item label="请求限额 / 天" path="limit">
+        <n-slider
+          v-model:value="form.reqLimit"
+          :default-value="100"
+          :max="1000"
+          :min="10"
+          :step="100"
+          @update:value="onUpdateLimit"
+        />
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        <n-input-number v-model:value="form.key" size="small" />
+        <n-input-number v-model:value="form.reqLimit" size="small" @update:value="onUpdateLimit" />
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <n-checkbox v-model:checked="isLimit" class="w-[200px]" @update:checked="onCheckLimit">
+          不限制
+        </n-checkbox>
       </n-form-item>
-      <n-form-item label="Key有效期（天）" path="expired">
-        <n-slider v-model:value="form.expired" :step="10" />
+      <n-form-item label="Key过期时间" path="expired">
+        <n-date-picker
+          v-model:value="form.expired"
+          clearable
+          format="yyyy-MM-dd"
+          type="date"
+          @update:value="onUpdateExpired"
+        />
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        <n-input-number v-model:value="form.expired" size="small" />
+        <n-checkbox v-model:checked="isExpired" @update:checked="onCheckExpired"> 长期 </n-checkbox>
       </n-form-item>
       <n-form-item label="应用描述" path="des">
         <n-input v-model:value="form.des" placeholder="请输入应用描述" type="textarea" />

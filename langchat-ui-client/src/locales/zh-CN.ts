@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2024 LangChat. TyCoding All Rights Reserved.
+ *
+ * Licensed under the GNU Affero General Public License, Version 3 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.gnu.org/licenses/agpl-3.0.html
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 export default {
   app: 'Lang Chat',
   common: {
@@ -182,6 +198,14 @@ export default {
     prompt: '提示词',
     nameTips: '请输入名称',
     promptTips: '请输入提示词',
+  },
+  image: {
+    example: '示例',
+    des: '内容描述',
+    output: '输出内容',
+    title: '文生图',
+    titleDes: '在左侧输入想要生成图片的自然语言描述',
+    begin: '立即开始',
   },
   mindmap: {
     example: '示例',

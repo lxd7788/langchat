@@ -1,14 +1,31 @@
+<!--
+  - Copyright (c) 2024 LangChat. TyCoding All Rights Reserved.
+  -
+  - Licensed under the GNU Affero General Public License, Version 3 (the "License");
+  - you may not use this file except in compliance with the License.
+  - You may obtain a copy of the License at
+  -
+  -     https://www.gnu.org/licenses/agpl-3.0.html
+  -
+  - Unless required by applicable law or agreed to in writing, software
+  - distributed under the License is distributed on an "AS IS" BASIS,
+  - WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  - See the License for the specific language governing permissions and
+  - limitations under the License.
+  -->
+
 <script lang="ts" setup>
   import { useChatStore } from '@/views/aigc/chat/components/store/useChatStore';
   import { onMounted, ref, toRaw } from 'vue';
-  import { getChatModels } from '@/api/aigc/model';
-  import { LLMProviders } from '@/views/aigc/model/data';
+  import { list as getModels } from '@/api/aigc/model';
+  import { LLMProviders } from '@/views/aigc/model/components/chat/data';
+  import { ModelTypeEnum } from '@/api/models';
 
   const chatStore = useChatStore();
   const modelList = ref([]);
 
   onMounted(async () => {
-    const providers = await getChatModels();
+    const providers = (await getModels({ type: ModelTypeEnum.CHAT })) as any;
     const data: any = [];
     if (chatStore.modelName === '') {
       chatStore.modelId = providers[0].id;

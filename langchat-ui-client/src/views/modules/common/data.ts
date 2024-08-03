@@ -1,23 +1,27 @@
-export enum EmbeddingProviderEnum {
-  OPENAI = 'openai',
-  AZURE_OPENAI = 'azure-openai',
-  GOOGLE = 'google',
-  OLLAMA = 'ollama',
-  BAIDU = 'baidu',
-  ALIBABA = 'alibaba',
-  ZHIPU = 'zhipu',
-}
+/*
+ * Copyright (c) 2024 LangChat. TyCoding All Rights Reserved.
+ *
+ * Licensed under the GNU Affero General Public License, Version 3 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.gnu.org/licenses/agpl-3.0.html
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 export enum ProviderEnum {
-  OPENAI = 'openai',
-  AZURE_OPENAI = 'azure-openai',
-  GOOGLE = 'google',
-  OLLAMA = 'ollama',
-  BAIDU = 'baidu',
-  ALIBABA = 'alibaba',
-  ZHIPU = 'zhipu',
-  TEXT_IMAGE = 'text-image',
-  EMBEDDING = 'embedding',
+  OPENAI = 'OPENAI',
+  AZURE_OPENAI = 'AZURE_OPENAI',
+  GEMINI = 'GEMINI',
+  OLLAMA = 'OLLAMA',
+  Q_FAN = 'Q_FAN',
+  Q_WEN = 'Q_WEN',
+  ZHIPU = 'ZHIPU',
 }
 
 export const LLMProviders: any[] = [
@@ -65,15 +69,15 @@ export const LLMProviders: any[] = [
     ],
   },
   {
-    model: ProviderEnum.GOOGLE,
-    name: 'Google',
+    model: ProviderEnum.GEMINI,
+    name: 'GEMINI',
   },
   {
     model: ProviderEnum.OLLAMA,
-    name: 'Ollama',
+    name: 'OLLAMA',
   },
   {
-    model: ProviderEnum.BAIDU,
+    model: ProviderEnum.Q_FAN,
     name: '百度千帆大模型',
     models: [
       'ernie_bot_8k',
@@ -92,8 +96,8 @@ export const LLMProviders: any[] = [
     ],
   },
   {
-    model: ProviderEnum.ALIBABA,
-    name: '阿里千帆大模型',
+    model: ProviderEnum.Q_WEN,
+    name: '阿里千问大模型',
     models: [
       'qwen-turbo',
       'qwen-plus',
@@ -115,26 +119,4 @@ export const LLMProviders: any[] = [
     name: '智普AI',
     models: ['glm-4', 'glm-3-turbo', 'chatglm_turbo'],
   },
-  {
-    model: ProviderEnum.TEXT_IMAGE,
-    name: 'Text-Image',
-    models: ['dall-e-2', 'dall-e-3'],
-  },
-  {
-    model: ProviderEnum.EMBEDDING,
-    name: 'Embedding',
-    models: [
-      'text-embedding-3-small',
-      'text-embedding-3-large',
-      'text-embedding-ada-002',
-      'embedding-v1',
-      'bge_large_zh',
-      'bge_large_en',
-      'tao_8k',
-    ],
-  },
-  // {
-  //   model: 'web-search',
-  //   name: 'RAG-WebSearch',
-  // },
 ];
