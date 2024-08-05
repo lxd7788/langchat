@@ -156,8 +156,12 @@ public class ProviderInitialize implements ApplicationContextAware {
                 contextHolder.registerBean(model.getId(), build);
             }
             if (ProviderEnum.CLAUDE.name().equals(provider)) {
+                if (!model.getBaseUrl().endsWith("/")) {
+                    model.setBaseUrl(model.getBaseUrl() + "/");
+                }
                 AnthropicStreamingChatModel build = AnthropicStreamingChatModel
                         .builder()
+                        .apiKey(model.getApiKey())
                         .baseUrl(model.getBaseUrl())
                         .modelName(model.getModel())
                         .temperature(model.getTemperature())
@@ -214,7 +218,7 @@ public class ProviderInitialize implements ApplicationContextAware {
         String type = model.getType();
         String provider = model.getProvider();
 
-        if (ModelTypeEnum.CHAT.name().equals(type)) {
+        if (ModelTypeEnum.EMBEDDING.name().equals(type)) {
             if (ProviderEnum.OPENAI.name().equals(provider)) {
                 OpenAiEmbeddingModel build = OpenAiEmbeddingModel
                         .builder()

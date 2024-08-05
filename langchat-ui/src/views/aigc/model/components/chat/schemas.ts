@@ -74,7 +74,7 @@ const baseSchemas: FormSchema[] = [
     rules: [{ type: 'number', required: true, message: '请输入生成随机性', trigger: ['blur'] }],
     componentProps: {
       showTooltip: true,
-      defaultValue: 0.8,
+      defaultValue: 0.2,
       step: 0.05,
       min: 0,
       max: 2,
@@ -89,7 +89,7 @@ const baseSchemas: FormSchema[] = [
     rules: [{ type: 'number', required: true, message: '请输入', trigger: ['blur'] }],
     componentProps: {
       showTooltip: true,
-      defaultValue: 1,
+      defaultValue: 0.8,
       step: 0.1,
       min: 0,
       max: 1,
@@ -134,6 +134,7 @@ export const openaiSchemas: FormSchema[] = [
     component: 'NSelect',
     rules: [{ required: true, message: '请选择模型', trigger: ['blur'] }],
     componentProps: {
+      tag: true,
       filterable: true,
       options: getModels(ProviderEnum.OPENAI),
     },
@@ -208,10 +209,14 @@ export const ollamaSchemas: FormSchema[] = [
     component: 'NInput',
     rules: [
       {
-        required: false,
+        required: true,
         trigger: ['blur'],
         validator: (_, value: string) => {
-          const urlRegex = /^(https?:\/\/)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/.*)?$/;
+          if (!value) {
+            return new Error('请输入baseUrl');
+          }
+          const urlRegex =
+            /^(https?:\/\/)?((([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}|localhost|(\d{1,3}\.){3}\d{1,3})(:\d{1,5})?(\/.*)?)$/;
           if (isNullOrWhitespace(value) || urlRegex.test(value)) {
             return true;
           }
