@@ -15,7 +15,7 @@ spring:
   # Redis配置
   data:
     redis:
-      port: 10188
+
       database: 1
       jedis:
         pool:
@@ -52,10 +52,10 @@ langchat:
       pass: <PASS>
   vectorstore:
     pgvector:
-      host: 127.0.0.1
-      user: root
-      password: root
-      port: 5432
+      host: 192.168.0.18
+      user: pgvector
+      password: pgvector
+      port: 54333
       database: langchat
       table: vector_1
       dimension: 384

@@ -30,6 +30,7 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
@@ -47,7 +48,13 @@ import java.util.stream.Collectors;
 public class AigcMessageServiceImpl extends ServiceImpl<AigcMessageMapper, AigcMessage> implements
         AigcMessageService {
     private final AigcConversationMapper aigcConversationMapper;
+
+//    @Autowired
+//    private AigcConversationMapper aigcConversationMapper;
     private final AigcUserMapper aigcUserMapper;
+
+//    @Autowired
+//    private AigcUserMapper aigcUserMapper;
 
     @Override
     public List<AigcConversation> conversations(String userId) {
