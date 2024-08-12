@@ -33,13 +33,6 @@ export function embeddingSearch(data: any) {
   });
 }
 
-export function getExcelRows(docsId: any) {
-  return http.request({
-    url: `/aigc/embedding/struct/excel/rows/${docsId}`,
-    method: 'get',
-  });
-}
-
 export function embeddingDocs(
   knowledgeId: string,
   data: any,
@@ -47,22 +40,6 @@ export function embeddingDocs(
 ) {
   return http.request({
     url: `/aigc/embedding/docs/${knowledgeId}`,
-    method: 'post',
-    data,
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-    onUploadProgress,
-  });
-}
-
-export function embeddingExcel(
-  knowledgeId: string,
-  data: any,
-  onUploadProgress?: (progressEvent: AxiosProgressEvent) => void
-) {
-  return http.request({
-    url: `/aigc/embedding/struct/excel/${knowledgeId}`,
     method: 'post',
     data,
     headers: {

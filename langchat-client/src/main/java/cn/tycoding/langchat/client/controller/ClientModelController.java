@@ -16,10 +16,11 @@
 
 package cn.tycoding.langchat.client.controller;
 
+import cn.hutool.core.util.StrUtil;
+import cn.tycoding.langchat.app.entity.AigcApp;
+import cn.tycoding.langchat.app.service.AigcAppService;
 import cn.tycoding.langchat.biz.entity.AigcModel;
-import cn.tycoding.langchat.biz.entity.AigcPrompt;
 import cn.tycoding.langchat.biz.service.AigcModelService;
-import cn.tycoding.langchat.biz.service.AigcPromptService;
 import cn.tycoding.langchat.common.utils.R;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import lombok.AllArgsConstructor;
@@ -38,26 +39,34 @@ import java.util.List;
 @AllArgsConstructor
 public class ClientModelController {
 
-    private final AigcPromptService aigcPromptService;
+    private final AigcAppService aigcAppService;
     private final AigcModelService aigcModelService;
 
-    @GetMapping("/prompt/list")
-    public R list(AigcPrompt data) {
-        List<AigcPrompt> list = aigcPromptService.list(Wrappers.<AigcPrompt>lambdaQuery().orderByDesc(AigcPrompt::getCreateTime));
+    @GetMapping("/app/list")
+    public R list(AigcApp data) {
+        List<AigcApp> list = aigcAppService.list(Wrappers.<AigcApp>lambdaQuery()
+                .like(StrUtil.isNotBlank(data.getName()), AigcApp::getName, data.getName())
+                .orderByDesc(AigcApp::getCreateTime));
         return R.ok(list);
     }
 
     @GetMapping("/getChatModels")
     public R<List<AigcModel>> getChatModels() {
         List<AigcModel> list = aigcModelService.getChatModels();
-        list.forEach(i -> i.setApiKey(null));
+        list.forEach(i -> {
+            i.setApiKey(null);
+            i.setSecretKey(null);
+        });
         return R.ok(list);
     }
 
     @GetMapping("/getImageModels")
     public R<List<AigcModel>> getImageModels() {
         List<AigcModel> list = aigcModelService.getImageModels();
-        list.forEach(i -> i.setApiKey(null));
+        list.forEach(i -> {
+            i.setApiKey(null);
+            i.setSecretKey(null);
+        });
         return R.ok(list);
     }
 }

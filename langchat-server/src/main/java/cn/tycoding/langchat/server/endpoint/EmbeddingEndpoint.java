@@ -17,31 +17,25 @@
 package cn.tycoding.langchat.server.endpoint;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
-import cn.hutool.core.lang.Dict;
 import cn.hutool.core.util.StrUtil;
-import cn.tycoding.langchat.biz.dto.DocsTypeEnum;
-import cn.tycoding.langchat.biz.entity.*;
-import cn.tycoding.langchat.biz.listener.StructExcelListener;
+import cn.tycoding.langchat.biz.entity.AigcDocs;
+import cn.tycoding.langchat.biz.entity.AigcDocsSlice;
+import cn.tycoding.langchat.biz.entity.AigcOss;
 import cn.tycoding.langchat.biz.mapper.AigcDocsMapper;
-import cn.tycoding.langchat.biz.service.*;
+import cn.tycoding.langchat.biz.service.AigcKnowledgeService;
+import cn.tycoding.langchat.biz.service.AigcOssService;
 import cn.tycoding.langchat.common.dto.ChatReq;
 import cn.tycoding.langchat.common.dto.EmbeddingR;
 import cn.tycoding.langchat.common.exception.ServiceException;
 import cn.tycoding.langchat.common.utils.R;
-import cn.tycoding.langchat.core.service.LangDocService;
+import cn.tycoding.langchat.core.consts.EmbedConst;
+import cn.tycoding.langchat.core.service.LangEmbeddingService;
 import cn.tycoding.langchat.server.service.EmbeddingService;
 import cn.tycoding.langchat.upms.utils.AuthUtil;
-import com.alibaba.excel.EasyExcel;
-import com.alibaba.excel.enums.CellExtraTypeEnum;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.util.List;
 
 /**
  * @author tycoding
@@ -53,13 +47,10 @@ import java.util.List;
 @RequestMapping("/aigc/embedding")
 public class EmbeddingEndpoint {
 
-    private final LangDocService langDocService;
+    private final LangEmbeddingService langEmbeddingService;
     private final AigcKnowledgeService aigcKnowledgeService;
     private final AigcDocsMapper aigcDocsMapper;
     private final AigcOssService aigcOssService;
-    private final AigcExcelColService excelColService;
-    private final AigcExcelRowService excelRowService;
-    private final AigcExcelDataService excelDataService;
     private final EmbeddingService embeddingService;
 
     @PostMapping("/text")
@@ -68,11 +59,12 @@ public class EmbeddingEndpoint {
         if (StrUtil.isBlankIfStr(data.getContent())) {
             throw new ServiceException("文档内容不能为空");
         }
-        data.setType(DocsTypeEnum.INPUT.name()).setSliceStatus(false);
+        data.setType(EmbedConst.ORIGIN_TYPE_INPUT).setSliceStatus(false);
         if (StrUtil.isBlank(data.getId())) {
             aigcKnowledgeService.addDocs(data);
         }
-        EmbeddingR embeddingR = langDocService.embeddingText(
+
+        EmbeddingR embeddingR = langEmbeddingService.embeddingText(
                 new ChatReq().setMessage(data.getContent())
                         .setDocsName(data.getType())
                         .setDocsId(data.getId())
@@ -97,8 +89,9 @@ public class EmbeddingEndpoint {
         AigcDocs data = new AigcDocs()
                 .setName(oss.getOriginalFilename())
                 .setSliceStatus(false)
+                .setUrl(oss.getUrl())
                 .setSize(file.getSize())
-                .setType(DocsTypeEnum.UPLOAD.name())
+                .setType(EmbedConst.ORIGIN_TYPE_UPLOAD)
                 .setKnowledgeId(knowledgeId);
         aigcKnowledgeService.addDocs(data);
 
@@ -107,47 +100,17 @@ public class EmbeddingEndpoint {
         return R.ok();
     }
 
-    @PostMapping("/excel/{knowledgeId}")
-    @SaCheckPermission("aigc:embedding:excel")
-    public R structExcel(MultipartFile file, @PathVariable String knowledgeId) throws IOException {
-        byte[] bytes = file.getBytes();
-        AigcOss oss = aigcOssService.upload(file, String.valueOf(AuthUtil.getUserId()));
-        AigcDocs data = new AigcDocs()
-                .setName(oss.getOriginalFilename())
-                .setSliceStatus(true)
-                .setSize(file.getSize())
-                .setType(DocsTypeEnum.UPLOAD.name())
-                .setKnowledgeId(knowledgeId);
-        aigcKnowledgeService.addDocs(data);
-
-        EasyExcel.read(new ByteArrayInputStream(bytes), new StructExcelListener(excelDataService, excelColService, excelRowService, knowledgeId, data.getId()))
-                .extraRead(CellExtraTypeEnum.MERGE)
-                .sheet()
-                .doRead();
-        return R.ok();
-    }
-
-    @GetMapping("/excel/rows/{docsId}")
-    public R getExcelRows(@PathVariable String docsId) {
-        List<List<String>> rows = excelDataService.list(Wrappers.<AigcExcelData>lambdaQuery()
-                .eq(AigcExcelData::getDocsId, docsId).orderByAsc(AigcExcelData::getRowIndex)
-        ).stream().map(AigcExcelData::getData).toList();
-
-        List<String> cols = excelColService.list(Wrappers.<AigcExcelCol>lambdaQuery()
-                        .eq(AigcExcelCol::getDocsId, docsId)
-                        .orderByAsc(AigcExcelCol::getColIndex))
-                .stream().map(AigcExcelCol::getLabel).toList();
-        return R.ok(Dict.create().set("cols", cols).set("rows", rows));
-    }
-
     @GetMapping("/re-embed/{docsId}")
     public R reEmbed(@PathVariable String docsId) {
         AigcDocs docs = aigcDocsMapper.selectById(docsId);
         if (docs == null) {
             throw new ServiceException("没有查询到文档数据");
         }
-        if ("INPUT".equals(docs.getType())) {
+        if (EmbedConst.ORIGIN_TYPE_INPUT.equals(docs.getType())) {
             text(docs);
+        }
+        if (EmbedConst.ORIGIN_TYPE_UPLOAD.equals(docs.getType())) {
+            embeddingService.embedDocsSlice(docs, docs.getUrl());
         }
         return R.ok();
     }

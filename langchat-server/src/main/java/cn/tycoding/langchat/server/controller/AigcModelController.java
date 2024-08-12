@@ -26,7 +26,6 @@ import cn.tycoding.langchat.common.component.SpringContextHolder;
 import cn.tycoding.langchat.common.utils.MybatisUtil;
 import cn.tycoding.langchat.common.utils.QueryPage;
 import cn.tycoding.langchat.common.utils.R;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -47,34 +46,18 @@ public class AigcModelController {
 
     @GetMapping("/list")
     public R<List<AigcModel>> list(AigcModel data) {
-        List<AigcModel> list = modelService.list(Wrappers.<AigcModel>lambdaQuery()
-                .eq(StrUtil.isNotBlank(data.getType()), AigcModel::getType, data.getType())
-                .eq(StrUtil.isNotBlank(data.getProvider()), AigcModel::getProvider, data.getProvider()));
-        list.forEach(this::hide);
-        return R.ok(list);
-    }
-
-    private void hide(AigcModel model) {
-        if (StrUtil.isBlank(model.getApiKey())) {
-            return;
-        }
-        String key = StrUtil.hide(model.getApiKey(), 3, model.getApiKey().length() - 4);
-        model.setApiKey(key);
+        return R.ok(modelService.list(data));
     }
 
     @GetMapping("/page")
     public R list(AigcModel data, QueryPage queryPage) {
-        Page<AigcModel> page = new Page<>(queryPage.getPage(), queryPage.getLimit());
-        Page<AigcModel> iPage = modelService.page(page, Wrappers.<AigcModel>lambdaQuery().eq(AigcModel::getProvider, data.getProvider()));
-        iPage.getRecords().forEach(this::hide);
+        Page<AigcModel> iPage = modelService.page(data, queryPage);
         return R.ok(MybatisUtil.getData(iPage));
     }
 
     @GetMapping("/{id}")
     public R<AigcModel> findById(@PathVariable String id) {
-        AigcModel model = modelService.getById(id);
-        hide(model);
-        return R.ok(model);
+        return R.ok(modelService.selectById(id));
     }
 
     @PostMapping
@@ -83,6 +66,9 @@ public class AigcModelController {
     public R add(@RequestBody AigcModel data) {
         if (StrUtil.isNotBlank(data.getApiKey()) && data.getApiKey().contains("*")) {
             data.setApiKey(null);
+        }
+        if (StrUtil.isNotBlank(data.getSecretKey()) && data.getSecretKey().contains("*")) {
+            data.setSecretKey(null);
         }
         modelService.save(data);
         SpringContextHolder.publishEvent(new ProviderRefreshEvent(data));
@@ -95,6 +81,9 @@ public class AigcModelController {
     public R update(@RequestBody AigcModel data) {
         if (StrUtil.isNotBlank(data.getApiKey()) && data.getApiKey().contains("*")) {
             data.setApiKey(null);
+        }
+        if (StrUtil.isNotBlank(data.getSecretKey()) && data.getSecretKey().contains("*")) {
+            data.setSecretKey(null);
         }
         modelService.updateById(data);
         SpringContextHolder.publishEvent(new ProviderRefreshEvent(data));

@@ -21,6 +21,9 @@ import dev.langchain4j.model.input.Prompt;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * @author tycoding
  * @since 2024/1/30
@@ -29,6 +32,7 @@ import lombok.experimental.Accessors;
 @Accessors(chain = true)
 public class ChatReq {
 
+    private String appId;
     private String modelId;
     private String modelName;
     private String modelProvider;
@@ -43,13 +47,12 @@ public class ChatReq {
 
     private String chatId;
 
-    private String promptId;
-
     private String promptText;
 
     private String docsName;
 
     private String knowledgeId;
+    private List<String> knowledgeIds = new ArrayList<>();
 
     private String docsId;
 

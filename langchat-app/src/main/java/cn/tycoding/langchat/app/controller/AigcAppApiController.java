@@ -16,6 +16,7 @@
 
 package cn.tycoding.langchat.app.controller;
 
+import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.hutool.core.lang.Dict;
 import cn.hutool.core.util.IdUtil;
 import cn.tycoding.langchat.app.consts.AppConst;
@@ -33,6 +34,7 @@ import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Date;
 import java.util.List;
 
 @RestController
@@ -51,7 +53,7 @@ public class AigcAppApiController {
 
     @GetMapping("/list")
     public R<List<AigcAppApi>> list(AigcAppApi data) {
-        List<AigcAppApi> list = appApiService.list(new LambdaQueryWrapper<AigcAppApi>());
+        List<AigcAppApi> list = appApiService.list(new LambdaQueryWrapper<AigcAppApi>().orderByDesc(AigcAppApi::getCreateTime));
         return R.ok(list);
     }
 
@@ -59,7 +61,7 @@ public class AigcAppApiController {
     public R<Dict> page(AigcAppApi data, QueryPage queryPage) {
         IPage<AigcAppApi> iPage = appApiService.page(MybatisUtil.wrap(data, queryPage),
                 Wrappers.<AigcAppApi>lambdaQuery()
-                        .like(StringUtils.isNotEmpty(data.getName()), AigcAppApi::getName, data.getName()));
+                        .like(StringUtils.isNotEmpty(data.getName()), AigcAppApi::getName, data.getName()).orderByDesc(AigcAppApi::getCreateTime));
         return R.ok(MybatisUtil.getData(iPage));
     }
 
@@ -71,11 +73,9 @@ public class AigcAppApiController {
 
     @PostMapping
     @ApiLog("新增API渠道")
-//    @SaCheckPermission("aigc:app:iframe:add")
+    @SaCheckPermission("aigc:app:api:add")
     public R add(@RequestBody AigcAppApi data) {
-        if (data.getApiKey().contains("*")) {
-            data.setApiKey(null);
-        }
+        data.setCreateTime(new Date());
         appApiService.save(data);
         appChannelStore.init();
         return R.ok();
@@ -83,11 +83,8 @@ public class AigcAppApiController {
 
     @PutMapping
     @ApiLog("修改API渠道")
-//    @SaCheckPermission("aigc:app:iframe:update")
+    @SaCheckPermission("aigc:app:api:update")
     public R update(@RequestBody AigcAppApi data) {
-        if (data.getApiKey().contains("*")) {
-            data.setApiKey(null);
-        }
         appApiService.updateById(data);
         appChannelStore.init();
         return R.ok();
@@ -95,7 +92,7 @@ public class AigcAppApiController {
 
     @DeleteMapping("/{id}")
     @ApiLog("删除API渠道")
-//    @SaCheckPermission("aigc:app:iframe:delete")
+    @SaCheckPermission("aigc:app:api:delete")
     public R delete(@PathVariable String id) {
         appApiService.removeById(id);
         appChannelStore.init();

@@ -129,21 +129,21 @@ export const BaseRoute: Array<any> = [
         },
       },
       {
-        path: 'app/api/:id?',
+        path: 'app/channel/api/:id?',
         name: 'API_CHANNEL',
-        component: '/app/api/index',
+        component: '/channel/api/index',
         show: false,
         meta: {
           title: 'API渠道',
         },
       },
       {
-        path: 'app/web/:id?',
+        path: 'app/channel/web/:id?',
         name: 'WEB_CHANNEL',
-        component: '/app/web/index',
+        component: '/channel/web/index',
         show: false,
         meta: {
-          title: 'WEB渠道',
+          title: 'Web渠道',
         },
       },
       {
@@ -153,6 +153,15 @@ export const BaseRoute: Array<any> = [
         show: false,
         meta: {
           title: '微信渠道',
+        },
+      },
+      {
+        path: 'app/info/:id?',
+        name: 'appInfo',
+        component: '/app/info',
+        show: false,
+        meta: {
+          title: '应用配置',
         },
       },
     ],
