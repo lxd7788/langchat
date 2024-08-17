@@ -23,6 +23,7 @@ import cn.tycoding.langchat.upms.utils.AuthUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
@@ -38,6 +39,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
 public class CaptchaInterceptor implements HandlerInterceptor {
 
     private final StringRedisTemplate redisTemplate;
+
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {

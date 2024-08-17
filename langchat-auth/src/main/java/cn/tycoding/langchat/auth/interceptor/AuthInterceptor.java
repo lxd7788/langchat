@@ -38,4 +38,7 @@ public class AuthInterceptor implements WebMvcConfigurer {
         registry.addInterceptor(new CaptchaInterceptor(redisTemplate)).addPathPatterns("/auth/login");
         registry.addInterceptor(new SaInterceptor()).addPathPatterns("/**");
     }
+
+
+
 }
