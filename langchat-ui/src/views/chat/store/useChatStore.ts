@@ -26,8 +26,8 @@ export const useChatStore = defineStore('chat-store', {
       modelProvider: '',
       conversationId: null,
       messages: [],
+      metadata: null,
       appId: null,
-      isGoogleSearch: false,
     },
 
   getters: {},
@@ -67,6 +67,7 @@ export const useChatStore = defineStore('chat-store', {
      */
     async delMessage(item: any) {
       this.messages = this.messages.filter((i) => i.promptId !== item.promptId);
+      this.metadata = null;
     },
   },
 });

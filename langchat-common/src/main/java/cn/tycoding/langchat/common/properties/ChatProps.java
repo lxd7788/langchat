@@ -14,33 +14,26 @@
  * limitations under the License.
  */
 
-package cn.tycoding.langchat.core.properties.chat;
+package cn.tycoding.langchat.common.properties;
 
 import lombok.Data;
-import lombok.experimental.Accessors;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-
-import java.time.Duration;
-import java.util.List;
 
 /**
  * @author tycoding
- * @since 2024/4/15
+ * @since 2024/8/21
  */
 @Data
-@Accessors(chain = true)
-@ConfigurationProperties(prefix = "langchat.ollama")
-public class OllamaProps {
+@ConfigurationProperties("langchat.chat")
+public class ChatProps {
 
-    private String baseUrl;
-    private String modelName;
-    private Double temperature;
-    private Integer topK;
-    private Double topP;
-    private Double repeatPenalty;
-    private Integer seed;
-    private Integer numPredict;
-    private List<String> stop;
-    private String format;
-    private Duration timeout = Duration.ofSeconds(3 * 60);
+    /**
+     * 上下文的长度
+     */
+    private Integer memoryMaxMessage = 20;
+
+    /**
+     * 前端渲染的消息长度（过长会导致页面渲染卡顿）
+     */
+    private Integer previewMaxMessage = 100;
 }

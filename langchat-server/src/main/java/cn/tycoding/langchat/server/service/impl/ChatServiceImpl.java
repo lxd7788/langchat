@@ -24,17 +24,19 @@ import cn.tycoding.langchat.biz.service.AigcMessageService;
 import cn.tycoding.langchat.common.constant.RoleEnum;
 import cn.tycoding.langchat.common.dto.ChatReq;
 import cn.tycoding.langchat.common.dto.ChatRes;
-import cn.tycoding.langchat.common.exception.ServiceException;
-import cn.tycoding.langchat.common.utils.PromptUtil;
 import cn.tycoding.langchat.common.utils.ServletUtil;
 import cn.tycoding.langchat.common.utils.StreamEmitter;
 import cn.tycoding.langchat.core.service.LangChatService;
+import cn.tycoding.langchat.core.service.impl.EmbeddingStoreContentRetrieverCustom;
 import cn.tycoding.langchat.server.service.ChatService;
 import dev.langchain4j.model.output.TokenUsage;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author tycoding
@@ -57,16 +59,13 @@ public class ChatServiceImpl implements ChatService {
 
         if (StrUtil.isNotBlank(req.getAppId())) {
             AigcApp app = appStore.get(req.getAppId());
-            if (app == null) {
-                throw new ServiceException("没有配置应用信息");
+            if (app != null) {
+                req.setModelId(app.getModelId());
+                req.setPromptText(app.getPrompt());
+                req.setKnowledgeIds(app.getKnowledgeIds());
             }
-            req.setModelId(app.getModelId());
-            req.setPromptText(app.getPrompt());
-            req.setKnowledgeIds(app.getKnowledgeIds());
         }
-        req.setPrompt(PromptUtil.build(req.getMessage(), req.getPromptText()));
 
-        // save user message
         req.setRole(RoleEnum.USER.getName());
         saveMessage(req, 0, 0);
 
@@ -78,15 +77,18 @@ public class ChatServiceImpl implements ChatService {
                     })
                     .onComplete((e) -> {
                         TokenUsage tokenUsage = e.tokenUsage();
-                        emitter.send(new ChatRes(tokenUsage.totalTokenCount(), startTime));
+                        List<Map<String, Object>> metadata = EmbeddingStoreContentRetrieverCustom.getMetadata(req.getConversationId());
+                        ChatRes res = new ChatRes(tokenUsage.totalTokenCount(), startTime);
+                        if (metadata != null) {
+                            res.setMetadata(metadata);
+                        }
+                        emitter.send(res);
                         emitter.complete();
 
-                        // save message
                         if (req.getConversationId() != null) {
                             req.setMessage(text.toString());
                             req.setRole(RoleEnum.ASSISTANT.getName());
-                            saveMessage(req, tokenUsage.inputTokenCount(),
-                                    tokenUsage.outputTokenCount());
+                            saveMessage(req, tokenUsage.inputTokenCount(), tokenUsage.outputTokenCount());
                         }
                     })
                     .onError((e) -> {

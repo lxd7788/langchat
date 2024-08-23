@@ -53,7 +53,6 @@ public class ClientChatServiceImpl implements ClientChatService {
         long startTime = System.currentTimeMillis();
         StringBuilder text = new StringBuilder();
 
-        // save user message
         req.setRole(RoleEnum.USER.getName());
         saveMessage(req, 0, 0);
 
@@ -72,8 +71,7 @@ public class ClientChatServiceImpl implements ClientChatService {
                         if (req.getConversationId() != null) {
                             req.setMessage(text.toString());
                             req.setRole(RoleEnum.ASSISTANT.getName());
-                            saveMessage(req, tokenUsage.inputTokenCount(),
-                                    tokenUsage.outputTokenCount());
+                            saveMessage(req, tokenUsage.inputTokenCount(), tokenUsage.outputTokenCount());
                         }
                     })
                     .onError((e) -> {
@@ -113,8 +111,7 @@ public class ClientChatServiceImpl implements ClientChatService {
                         if (req.getConversationId() != null) {
                             req.setMessage(text.toString());
                             req.setRole(RoleEnum.ASSISTANT.getName());
-                            saveMessage(req, tokenUsage.inputTokenCount(),
-                                    tokenUsage.outputTokenCount());
+                            saveMessage(req, tokenUsage.inputTokenCount(), tokenUsage.outputTokenCount());
                         }
                     })
                     .onError((e) -> {

@@ -21,25 +21,20 @@ import cn.hutool.core.util.StrUtil;
 import cn.tycoding.langchat.common.dto.ChatReq;
 import cn.tycoding.langchat.common.dto.ImageR;
 import cn.tycoding.langchat.common.exception.ServiceException;
+import cn.tycoding.langchat.common.properties.ChatProps;
 import cn.tycoding.langchat.core.provider.EmbeddingProvider;
 import cn.tycoding.langchat.core.provider.ModelProvider;
-import cn.tycoding.langchat.core.provider.SearchProvider;
 import cn.tycoding.langchat.core.service.Agent;
 import cn.tycoding.langchat.core.service.LangChatService;
 import dev.langchain4j.data.image.Image;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
+import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.image.ImageModel;
 import dev.langchain4j.model.output.Response;
-import dev.langchain4j.rag.DefaultRetrievalAugmentor;
-import dev.langchain4j.rag.RetrievalAugmentor;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
-import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
-import dev.langchain4j.rag.content.retriever.WebSearchContentRetriever;
 import dev.langchain4j.rag.query.Query;
-import dev.langchain4j.rag.query.router.DefaultQueryRouter;
-import dev.langchain4j.rag.query.router.QueryRouter;
 import dev.langchain4j.service.AiServices;
 import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.store.embedding.filter.Filter;
@@ -48,7 +43,6 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 import static cn.tycoding.langchat.core.consts.EmbedConst.KNOWLEDGE;
@@ -65,8 +59,25 @@ public class LangChatServiceImpl implements LangChatService {
 
     private final ModelProvider provider;
     private final EmbeddingProvider embeddingProvider;
-    private final SearchProvider searchProvider;
     private final PgVectorEmbeddingStore embeddingStore;
+    private final ChatProps chatProps;
+
+    private AiServices<Agent> build(StreamingChatLanguageModel streamModel, ChatLanguageModel model, ChatReq req) {
+        AiServices<Agent> aiServices = AiServices.builder(Agent.class)
+                .systemMessageProvider(memoryId -> req.getPromptText())
+                .chatMemoryProvider(memoryId -> MessageWindowChatMemory.builder()
+                        .id(req.getConversationId())
+                        .chatMemoryStore(new PersistentChatMemoryStore())
+                        .maxMessages(chatProps.getMemoryMaxMessage())
+                        .build());
+        if (streamModel != null) {
+            aiServices.streamingChatLanguageModel(streamModel);
+        }
+        if (model != null) {
+            aiServices.chatLanguageModel(model);
+        }
+        return aiServices;
+    }
 
     @Override
     public TokenStream chat(ChatReq req) {
@@ -75,34 +86,17 @@ public class LangChatServiceImpl implements LangChatService {
             req.setConversationId(IdUtil.simpleUUID());
         }
 
-        AiServices<Agent> aiServices = AiServices.builder(Agent.class)
-                .streamingChatLanguageModel(model)
-                .chatMemoryProvider(memoryId -> MessageWindowChatMemory.withMaxMessages(5));
-
+        AiServices<Agent> aiServices = build(model, null, req);
         EmbeddingModel embeddingModel = embeddingProvider.embed();
-
-        if (req.getIsGoogleSearch()) {
-            ContentRetriever webSearchContentRetriever;
-            if (searchProvider.get() == null) {
-                webSearchContentRetriever = WebSearchContentRetriever.builder().maxResults(3).build();
-            } else {
-                webSearchContentRetriever = WebSearchContentRetriever.builder().maxResults(3).webSearchEngine(searchProvider.get()).build();
-            }
-
-            QueryRouter queryRouter = new DefaultQueryRouter(webSearchContentRetriever);
-            RetrievalAugmentor retrievalAugmentor = DefaultRetrievalAugmentor.builder()
-                    .queryRouter(queryRouter)
-                    .build();
-            aiServices.retrievalAugmentor(retrievalAugmentor);
-        }
 
         if (StrUtil.isNotBlank(req.getKnowledgeId())) {
             req.getKnowledgeIds().add(req.getKnowledgeId());
         }
 
-        if (StrUtil.isNotBlank(req.getKnowledgeId())) {
+        if (req.getKnowledgeIds() != null && !req.getKnowledgeIds().isEmpty()) {
             Function<Query, Filter> filter = (query) -> metadataKey(KNOWLEDGE).isIn(req.getKnowledgeIds());
-            ContentRetriever contentRetriever = EmbeddingStoreContentRetriever.builder()
+            ContentRetriever contentRetriever = EmbeddingStoreContentRetrieverCustom.builder()
+                    .memoryId(req.getConversationId())
                     .embeddingStore(embeddingStore)
                     .embeddingModel(embeddingModel)
                     .dynamicFilter(filter)
@@ -111,7 +105,7 @@ public class LangChatServiceImpl implements LangChatService {
         }
 
         Agent agent = aiServices.build();
-        return agent.stream(req.getConversationId(), req.getPrompt().text());
+        return agent.stream(req.getConversationId(), req.getMessage());
     }
 
     @Override
@@ -121,37 +115,21 @@ public class LangChatServiceImpl implements LangChatService {
             req.setConversationId(IdUtil.simpleUUID());
         }
 
-        Agent agent = AiServices.builder(Agent.class)
-                .streamingChatLanguageModel(model)
-                .build();
-        return agent.stream(req.getConversationId(), req.getPrompt().text());
+        Agent agent = build(model, null, req).build();
+        return agent.stream(req.getConversationId(), req.getMessage());
     }
 
     @Override
     public String text(ChatReq req) {
-        CompletableFuture<Void> future = new CompletableFuture<>();
         if (StrUtil.isBlank(req.getConversationId())) {
             req.setConversationId(IdUtil.simpleUUID());
         }
 
         try {
-            StreamingChatLanguageModel model = provider.stream(req.getModelId());
-            Agent agent = AiServices.builder(Agent.class)
-                    .streamingChatLanguageModel(model)
-                    .chatMemoryProvider(memoryId -> MessageWindowChatMemory.withMaxMessages(5))
-                    .build();
-
-            StringBuilder text = new StringBuilder();
-            agent.stream(req.getConversationId(), req.getPrompt().text())
-                    .onNext(text::append)
-                    .onComplete((t) -> {
-                        future.complete(null);
-                    })
-                    .onError(future::completeExceptionally)
-                    .start();
-
-            future.join();
-            return text.toString();
+            ChatLanguageModel model = provider.text(req.getModelId());
+            Agent agent = build(null, model, req).build();
+            String text = agent.text(req.getConversationId(), req.getMessage());
+            return text;
         } catch (Exception e) {
             e.printStackTrace();
             return null;

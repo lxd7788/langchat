@@ -24,7 +24,6 @@
   import { useDialog, useMessage } from 'naive-ui';
   import SvgIcon from '@/components/SvgIcon/index.vue';
   import { chat } from '@/api/aigc/chat';
-  import { SparklesOutline } from '@vicons/ionicons5';
 
   const dialog = useDialog();
   const ms = useMessage();
@@ -73,6 +72,7 @@
       return;
     }
     controller = new AbortController();
+    chatStore.metadata = null;
 
     // user
     chatId.value = uuidv4();
@@ -100,7 +100,6 @@
           appId: chatStore.appId,
           message,
           role: 'user',
-          isGoogleSearch: chatStore.isGoogleSearch,
           modelId: chatStore.modelId,
           modelName: chatStore.modelName,
           modelProvider: chatStore.modelProvider,
@@ -121,8 +120,12 @@
               return;
             }
 
-            const { done, message } = JSON.parse(i.substring(5, i.length));
+            const { done, message, metadata } = JSON.parse(i.substring(5, i.length));
+            console.log('xxx', metadata);
             if (done || message === null) {
+              if (metadata != null && metadata != {}) {
+                chatStore.metadata = metadata;
+              }
               return;
             }
             text += message;
@@ -191,6 +194,7 @@
           <Message
             v-for="(item, index) of dataSources"
             :key="index"
+            :class="dataSources.length - 1 == index ? '!mb-2' : 'mb-6'"
             :date-time="item.createTime"
             :error="item.isError"
             :inversion="item.role !== 'assistant'"
@@ -198,13 +202,31 @@
             :text="item.message"
             @delete="handleDelete(item)"
           />
-          <div class="sticky bottom-0 left-0 flex justify-center">
-            <NButton v-if="loading" type="warning" @click="handleStop">
-              <template #icon>
-                <SvgIcon icon="ri:stop-circle-line" />
-              </template>
-              停止响应
-            </NButton>
+          <div
+            v-if="chatStore.metadata != null && chatStore.metadata.length != 0"
+            class="w-fit ml-10"
+          >
+            <n-collapse class="bg-[#f4f6f8] rounded-lg px-3 py-0.5 min-collapse pr-4">
+              <n-collapse-item>
+                <template #header>
+                  <div class="text-[12px] text-gray-500 p-2 pl-0 flex items-center gap-1">
+                    <SvgIcon class="text-blue-500 text-[14px]" icon="mingcute:document-2-fill" />
+                    <span>引用知识库文档：{{ chatStore.metadata.length }}条</span>
+                  </div>
+                </template>
+                <div class="pb-2">
+                  <div class="flex flex-col gap-2">
+                    <div
+                      v-for="item in chatStore.metadata"
+                      :key="item"
+                      class="!bg-gray-200 text-[12px] rounded hover:bg-gray-300 cursor-pointer p-2 px-3"
+                    >
+                      {{ item.docsName }}
+                    </div>
+                  </div>
+                </div>
+              </n-collapse-item>
+            </n-collapse>
           </div>
         </div>
       </div>
@@ -217,18 +239,30 @@
             ref="inputRef"
             v-model:value="message"
             :autosize="{ minRows: 1, maxRows: isMobile ? 1 : 4 }"
-            class="!rounded-full px-2 py-1"
+            class="!rounded-full px-2 py-1 custom-input"
             placeholder="今天想聊些什么~"
             size="large"
             type="textarea"
             @keypress="handleEnter"
           >
             <template #suffix>
-              <n-button :loading="loading" text @click="handleSubmit">
+              <n-button
+                v-if="!loading"
+                class="!cursor-pointer"
+                size="large"
+                text
+                @click="handleSubmit"
+              >
                 <template #icon>
-                  <n-icon :component="SparklesOutline" />
+                  <SvgIcon icon="mdi:sparkles-outline" />
                 </template>
               </n-button>
+              <div v-if="loading" class="!cursor-pointer" @click="handleStop">
+                <SvgIcon
+                  class="!text-3xl hover:text-gray-500 !cursor-pointer"
+                  icon="ri:stop-circle-line"
+                />
+              </div>
             </template>
           </n-input>
         </div>
@@ -240,11 +274,12 @@
 <style lang="less" scoped>
   ::v-deep(.custom-input) {
     .n-input-wrapper {
-      padding-right: 10px;
+      padding-right: 6px !important;
     }
-    .n-input__suffix {
-      align-items: end;
-      padding-bottom: 6px;
+  }
+  ::v-deep(.min-collapse) {
+    .n-collapse-item__content-inner {
+      padding-top: 0 !important;
     }
   }
 </style>
