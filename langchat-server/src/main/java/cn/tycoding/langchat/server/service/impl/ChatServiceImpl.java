@@ -66,11 +66,9 @@ public class ChatServiceImpl implements ChatService {
             }
         }
 
-        req.setRole(RoleEnum.USER.getName());
-        saveMessage(req, 0, 0);
-
         try {
-            langChatService.chat(req)
+            langChatService
+                    .chat(req)
                     .onNext(e -> {
                         text.append(e);
                         emitter.send(new ChatRes(e));
@@ -86,6 +84,9 @@ public class ChatServiceImpl implements ChatService {
                         emitter.complete();
 
                         if (req.getConversationId() != null) {
+                            req.setRole(RoleEnum.USER.getName());
+                            saveMessage(req, 0, 0);
+
                             req.setMessage(text.toString());
                             req.setRole(RoleEnum.ASSISTANT.getName());
                             saveMessage(req, tokenUsage.inputTokenCount(), tokenUsage.outputTokenCount());
